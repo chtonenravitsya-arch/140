@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!--
+  Telegram Web App for Expense Tracking
+  =====================================
+
+  This single page is a simple prototype of a Telegram mini‑app that
+  emulates the look and feel shown in the provided screenshot.  It uses
+  modern HTML and CSS (Flexbox) to lay out a row of round icons with
+  labels, followed by a section listing the user's stores with an
+  "Добавить" button.  The design adapts to Telegram's theme colours
+  through CSS variables exposed by the Telegram Web Apps library.
+
+  To integrate this page with your bot, host it on a secure (HTTPS)
+  server and send a message with a button containing the
+  ``web_app`` field via ``sendMessage`` or ``AnswerWebAppQuery``.  See
+  Telegram's Web App documentation for details.
+
+  For more information about building Telegram bots, refer to the
+  official python‑telegram‑bot example, which demonstrates registering
+  command handlers and running a polling loop【956752459236230†L19-L30】.
+-->
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shops Builder</title>
+  <style>
+    :root {
+      /* Use Telegram theme colours if available */
+      --bg-color: var(--tg-theme-bg-color, #0e1621);
+      --text-color: var(--tg-theme-text-color, #ffffff);
+      --accent-color: var(--tg-theme-button-color, #66b1ff);
+      --accent-text-color: var(--tg-theme-button-text-color, #ffffff);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .top-menu {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .menu-item {
+      flex: 1 1 18%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: var(--text-color);
+      margin: 4px;
+    }
+
+    .menu-item .icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    /* Define individual colours for each icon */
+    .icon.about { background: #3aa1ff; }
+    .icon.instructions { background: #ff5a78; }
+    .icon.catalog { background: #49c5b6; }
+    .icon.payments { background: #4299e1; }
+    .icon.faq { background: #9f7aea; }
+
+    h2 {
+      margin-top: 0;
+      font-weight: 500;
+    }
+
+    .stores-section {
+      margin-top: 16px;
+    }
+
+    .add-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      margin-top: 12px;
+      background-color: var(--accent-color);
+      color: var(--accent-text-color);
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .add-button span {
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- User header placeholder -->
+    <h1>Shops Builder</h1>
+    <!-- Top menu buttons -->
+    <div class="top-menu">
+      <a href="#" class="menu-item" onclick="handleMenu('about')">
+        <div class="icon about">📄</div>
+        <span>О нас</span>
+      </a>
+      <a href="#" class="menu-item" onclick="handleMenu('instructions')">
+        <div class="icon instructions">📘</div>
+        <span>Инструкция</span>
+      </a>
+      <a href="#" class="menu-item" onclick="handleMenu('catalog')">
+        <div class="icon catalog">🔢</div>
+        <span>Каталог товаров</span>
+      </a>
+      <a href="#" class="menu-item" onclick="handleMenu('payments')">
+        <div class="icon payments">💰</div>
+        <span>Получайте оплату</span>
+      </a>
+      <a href="#" class="menu-item" onclick="handleMenu('faq')">
+        <div class="icon faq">❓</div>
+        <span>FAQ</span>
+      </a>
+    </div>
+    <!-- Stores section -->
+    <div class="stores-section">
+      <h2>Ваши магазины</h2>
+      <button class="add-button" onclick="addStore()">
+        ➕<span>Добавить</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Telegram Web Apps integration script -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    // Basic handlers for demonstration; these functions can be
+    // customized to perform navigation within your web app or
+    // communicate with the bot via WebApp.sendData().
+    function handleMenu(section) {
+      window.Telegram.WebApp.showAlert('Раздел: ' + section);
+    }
+    function addStore() {
+      window.Telegram.WebApp.showAlert('Добавить магазин');
+    }
+  </script>
+</body>
+</html>
