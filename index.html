@@ -1,166 +1,281 @@
 <!DOCTYPE html>
 <!--
-  Telegram Web App for Expense Tracking
-  =====================================
+  Expense Tracker Mini App for Telegram
+  ------------------------------------
 
-  This single page is a simple prototype of a Telegram mini‑app that
-  emulates the look and feel shown in the provided screenshot.  It uses
-  modern HTML and CSS (Flexbox) to lay out a row of round icons with
-  labels, followed by a section listing the user's stores with an
-  "Добавить" button.  The design adapts to Telegram's theme colours
-  through CSS variables exposed by the Telegram Web Apps library.
+  This Mini App implements a simple expense tracking tool inside
+  Telegram.  It provides a form for adding expenses (amount,
+  category and description), displays a list of recorded expenses,
+  and shows a summary of totals by category and overall.  Data is
+  stored locally in the browser's localStorage so that it persists
+  between sessions.  The design adapts to Telegram's theme using
+  CSS variables provided by the Web App API.
 
-  To integrate this page with your bot, host it on a secure (HTTPS)
-  server and send a message with a button containing the
-  ``web_app`` field via ``sendMessage`` or ``AnswerWebAppQuery``.  See
-  Telegram's Web App documentation for details.
+  To launch this Mini App from your bot, host this file on a
+  secure (HTTPS) server and use a web_app button in your bot's
+  message or menu.  Make sure to register the domain via
+  @BotFather as described in the official documentation【780425990359058†L296-L321】.
 
-  For more information about building Telegram bots, refer to the
-  official python‑telegram‑bot example, which demonstrates registering
-  command handlers and running a polling loop【956752459236230†L19-L30】.
+  Note: For simplicity, this demo does not send data back to the
+  bot.  If you want to synchronize data with the bot, you can call
+  Telegram.WebApp.sendData(jsonString) inside the addExpense()
+  function.
 -->
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shops Builder</title>
+  <title>Учёт денег</title>
   <style>
     :root {
-      /* Use Telegram theme colours if available */
-      --bg-color: var(--tg-theme-bg-color, #0e1621);
-      --text-color: var(--tg-theme-text-color, #ffffff);
-      --accent-color: var(--tg-theme-button-color, #66b1ff);
+      /* Telegram theme variables with fallbacks */
+      --bg-color: var(--tg-theme-bg-color, #f5f5f5);
+      --text-color: var(--tg-theme-text-color, #1f2937);
+      --secondary-text-color: var(--tg-theme-hint-color, #6b7280);
+      --accent-color: var(--tg-theme-button-color, #3b82f6);
       --accent-text-color: var(--tg-theme-button-text-color, #ffffff);
+      --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
+      --border-radius: 8px;
     }
-
     body {
       margin: 0;
       padding: 0;
       font-family: system-ui, -apple-system, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
-      display: flex;
-      flex-direction: column;
       min-height: 100vh;
-    }
-
-    .container {
-      padding: 16px;
-    }
-
-    .top-menu {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      margin-bottom: 24px;
-    }
-
-    .menu-item {
-      flex: 1 1 18%;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-decoration: none;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+      flex: 1;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 1.6rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: var(--secondary-text-color);
+    }
+    input[type="number"],
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: var(--border-radius);
+      border: 1px solid #d1d5db;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      background-color: var(--bg-color);
       color: var(--text-color);
-      margin: 4px;
     }
-
-    .menu-item .icon {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    /* Define individual colours for each icon */
-    .icon.about { background: #3aa1ff; }
-    .icon.instructions { background: #ff5a78; }
-    .icon.catalog { background: #49c5b6; }
-    .icon.payments { background: #4299e1; }
-    .icon.faq { background: #9f7aea; }
-
-    h2 {
-      margin-top: 0;
-      font-weight: 500;
-    }
-
-    .stores-section {
-      margin-top: 16px;
-    }
-
-    .add-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px;
+    button {
+      display: inline-block;
       margin-top: 12px;
+      padding: 10px 16px;
       background-color: var(--accent-color);
       color: var(--accent-text-color);
       border: none;
-      border-radius: 8px;
-      font-size: 16px;
+      border-radius: var(--border-radius);
+      font-size: 0.95rem;
       cursor: pointer;
       width: 100%;
     }
-
-    .add-button span {
-      margin-left: 8px;
+    button:active {
+      filter: brightness(0.9);
+    }
+    .expenses-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .expense-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .expense-item:last-child {
+      border-bottom: none;
+    }
+    .expense-info {
+      flex: 1;
+    }
+    .expense-amount {
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .summary {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .summary h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    .summary ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .summary li {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- User header placeholder -->
-    <h1>Shops Builder</h1>
-    <!-- Top menu buttons -->
-    <div class="top-menu">
-      <a href="#" class="menu-item" onclick="handleMenu('about')">
-        <div class="icon about">📄</div>
-        <span>О нас</span>
-      </a>
-      <a href="#" class="menu-item" onclick="handleMenu('instructions')">
-        <div class="icon instructions">📘</div>
-        <span>Инструкция</span>
-      </a>
-      <a href="#" class="menu-item" onclick="handleMenu('catalog')">
-        <div class="icon catalog">🔢</div>
-        <span>Каталог товаров</span>
-      </a>
-      <a href="#" class="menu-item" onclick="handleMenu('payments')">
-        <div class="icon payments">💰</div>
-        <span>Получайте оплату</span>
-      </a>
-      <a href="#" class="menu-item" onclick="handleMenu('faq')">
-        <div class="icon faq">❓</div>
-        <span>FAQ</span>
-      </a>
+    <h1>Учёт денег</h1>
+    <!-- Add Expense Form -->
+    <div class="card">
+      <form id="expense-form">
+        <label for="amount">Сумма</label>
+        <input type="number" id="amount" step="0.01" min="0" required />
+        <label for="category">Категория</label>
+        <input type="text" id="category" placeholder="например, Еда" required />
+        <label for="description">Описание</label>
+        <textarea id="description" rows="2" placeholder="Комментарий (необязательно)"></textarea>
+        <button type="submit">Добавить расход</button>
+      </form>
     </div>
-    <!-- Stores section -->
-    <div class="stores-section">
-      <h2>Ваши магазины</h2>
-      <button class="add-button" onclick="addStore()">
-        ➕<span>Добавить</span>
-      </button>
+    <!-- Expenses List -->
+    <div class="card">
+      <h2>Список расходов</h2>
+      <ul id="expenses" class="expenses-list"></ul>
+      <p id="no-expenses" style="display:none; color: var(--secondary-text-color);">Пока нет записей.</p>
+    </div>
+    <!-- Summary -->
+    <div class="summary">
+      <h2>Итого</h2>
+      <ul id="summary-list"></ul>
     </div>
   </div>
-
-  <!-- Telegram Web Apps integration script -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    // Basic handlers for demonstration; these functions can be
-    // customized to perform navigation within your web app or
-    // communicate with the bot via WebApp.sendData().
-    function handleMenu(section) {
-      window.Telegram.WebApp.showAlert('Раздел: ' + section);
+    // Expense array stored in memory and localStorage
+    let expenses = [];
+
+    // DOM elements
+    const form = document.getElementById('expense-form');
+    const expensesList = document.getElementById('expenses');
+    const noExpensesMsg = document.getElementById('no-expenses');
+    const summaryList = document.getElementById('summary-list');
+
+    // Load from localStorage on startup
+    function loadExpenses() {
+      const data = localStorage.getItem('expenses');
+      if (data) {
+        try {
+          expenses = JSON.parse(data);
+        } catch (e) {
+          console.error('Invalid expenses JSON', e);
+          expenses = [];
+        }
+      }
     }
-    function addStore() {
-      window.Telegram.WebApp.showAlert('Добавить магазин');
+
+    // Save current expenses array to localStorage
+    function saveExpenses() {
+      localStorage.setItem('expenses', JSON.stringify(expenses));
     }
+
+    // Render list of expenses
+    function renderExpenses() {
+      expensesList.innerHTML = '';
+      if (expenses.length === 0) {
+        noExpensesMsg.style.display = 'block';
+      } else {
+        noExpensesMsg.style.display = 'none';
+        expenses.forEach((exp, index) => {
+          const li = document.createElement('li');
+          li.className = 'expense-item';
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'expense-info';
+          infoDiv.innerHTML = `<div>${exp.timestamp}</div><div>${exp.category} — ${exp.description || ''}</div>`;
+          const amountDiv = document.createElement('div');
+          amountDiv.className = 'expense-amount';
+          amountDiv.textContent = exp.amount.toFixed(2);
+          li.appendChild(infoDiv);
+          li.appendChild(amountDiv);
+          expensesList.appendChild(li);
+        });
+      }
+      renderSummary();
+    }
+
+    // Render summary by category and total
+    function renderSummary() {
+      const totals = {};
+      let grandTotal = 0;
+      expenses.forEach(exp => {
+        totals[exp.category] = (totals[exp.category] || 0) + exp.amount;
+        grandTotal += exp.amount;
+      });
+      summaryList.innerHTML = '';
+      for (const [cat, total] of Object.entries(totals)) {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${cat}</span><span>${total.toFixed(2)}</span>`;
+        summaryList.appendChild(li);
+      }
+      // Grand total line
+      const totalLi = document.createElement('li');
+      totalLi.style.fontWeight = 'bold';
+      totalLi.innerHTML = `<span>Всего</span><span>${grandTotal.toFixed(2)}</span>`;
+      summaryList.appendChild(totalLi);
+    }
+
+    // Add expense handler
+    function addExpense(evt) {
+      evt.preventDefault();
+      const amountVal = parseFloat(document.getElementById('amount').value);
+      const categoryVal = document.getElementById('category').value.trim();
+      const descriptionVal = document.getElementById('description').value.trim();
+      if (!amountVal || !categoryVal) {
+        alert('Введите сумму и категорию');
+        return;
+      }
+      const expense = {
+        amount: amountVal,
+        category: categoryVal,
+        description: descriptionVal,
+        timestamp: new Date().toLocaleString()
+      };
+      expenses.push(expense);
+      saveExpenses();
+      renderExpenses();
+      form.reset();
+      // Optionally send data back to the bot
+      // Telegram.WebApp.sendData(JSON.stringify(expense));
+    }
+
+    // Initialise
+    loadExpenses();
+    renderExpenses();
+    form.addEventListener('submit', addExpense);
+
+    // Adjust the app's background to match Telegram theme
+    Telegram.WebApp.ready();
   </script>
 </body>
 </html>
